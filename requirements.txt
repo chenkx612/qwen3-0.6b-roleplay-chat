@@ -1,0 +1,15 @@
+# 本地推理环境依赖
+transformers>=4.40.0
+peft>=0.10.0
+torch
+accelerate
+
+# 可选：llama.cpp推理（更快）
+# llama-cpp-python
+
+# ==============================
+# Colab训练环境额外依赖（参考）
+# ==============================
+# trl>=0.8.0
+# datasets
+# bitsandbytes

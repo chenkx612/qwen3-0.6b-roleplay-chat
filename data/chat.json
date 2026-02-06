@@ -1,0 +1,15 @@
+[
+  {"sender": "我", "content": "在干嘛"},
+  {"sender": "对方", "content": "刚下班回来"},
+  {"sender": "我", "content": "今天累不累"},
+  {"sender": "对方", "content": "还好吧，开了一天会"},
+  {"sender": "我", "content": "晚上吃什么"},
+  {"sender": "对方", "content": "还没想好"},
+  {"sender": "对方", "content": "可能点个外卖"},
+  {"sender": "我", "content": "要不一起吃"},
+  {"sender": "对方", "content": "好呀"},
+  {"sender": "对方", "content": "你想吃啥"},
+  {"sender": "我", "content": "火锅怎么样"},
+  {"sender": "对方", "content": "可以可以"},
+  {"sender": "对方", "content": "正好想吃辣的"}
+]
