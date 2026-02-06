@@ -7,10 +7,8 @@
 ```
 roleplay/
 ├── data/
-│   ├── chat.json              # 原始聊天记录（需要用户提供）
-│   └── train_data.json        # 预处理后的训练数据
+│   └── train_data.json        # 训练数据（ShareGPT格式，手写）
 ├── scripts/
-│   ├── prepare_data.py        # 数据预处理脚本
 │   └── convert_to_gguf.py     # 模型转换脚本（可选）
 ├── train/
 │   └── finetune.ipynb         # Colab微调notebook
@@ -22,39 +20,37 @@ roleplay/
 
 ## 使用流程
 
-### 1. 准备聊天数据
+### 1. 准备训练数据
 
-将微信聊天记录整理为JSON格式，保存到 `data/chat.json`：
+直接手写 `data/train_data.json`，使用 ShareGPT 格式：
 
 ```json
 [
-  {"sender": "我", "content": "在干嘛"},
-  {"sender": "对方", "content": "刚下班回来"},
-  {"sender": "我", "content": "今天累不累"},
-  {"sender": "对方", "content": "还好吧，开了一天会"}
+  {
+    "conversations": [
+      {"role": "user", "content": "在干嘛"},
+      {"role": "assistant", "content": "刚下班回来"},
+      {"role": "user", "content": "今天累不累"},
+      {"role": "assistant", "content": "还好吧，开了一天会"}
+    ]
+  },
+  {
+    "conversations": [
+      {"role": "user", "content": "晚上吃什么"},
+      {"role": "assistant", "content": "还没想好，可能点个外卖"}
+    ]
+  }
 ]
 ```
 
-字段说明：
-- `sender`: 发送者标识，"我"或"对方"
-- `content`: 消息内容
-- `timestamp`: （可选）时间戳，用于切分对话会话
+格式要求：
+- `user`: 你发的消息
+- `assistant`: 对方的回复（模型要学习的目标）
+- 每个对话必须以 `user` 开头、`assistant` 结尾
+- 可以包含多轮对话，按时间顺序排列
+- 建议将相关的连续对话组织在同一个 `conversations` 数组中
 
-### 2. 数据预处理
-
-```bash
-python scripts/prepare_data.py -i data/chat.json -o data/train_data.json
-```
-
-参数说明：
-- `--input, -i`: 输入的聊天记录文件
-- `--output, -o`: 输出的训练数据文件
-- `--my-name`: "我"的标识符（默认："我"）
-- `--other-name`: "对方"的标识符（默认："对方"）
-- `--max-turns`: 每个样本的最大对话轮次（默认：10）
-- `--time-gap`: 对话切分的时间间隔阈值，秒（默认：3600）
-
-### 3. 模型微调（Google Colab）
+### 2. 模型微调（Google Colab）
 
 1. 打开 [Google Colab](https://colab.research.google.com/)
 2. 上传 `train/finetune.ipynb`
@@ -63,7 +59,7 @@ python scripts/prepare_data.py -i data/chat.json -o data/train_data.json
 5. 上传 `data/train_data.json` 作为训练数据
 6. 训练完成后下载 `lora_adapter.zip`
 
-### 4. 本地推理
+### 3. 本地推理
 
 安装依赖：
 
@@ -116,16 +112,6 @@ pip install llama-cpp-python
 
 ```bash
 python inference/chat.py --backend llama.cpp --gguf ./model.gguf
-```
-
-### 自定义聊天记录格式
-
-如果你的聊天记录使用不同的字段名，修改 `prepare_data.py` 中的字段映射：
-
-```python
-# 示例：字段名为 "from" 和 "text"
-msg["sender"] = raw_msg["from"]
-msg["content"] = raw_msg["text"]
 ```
 
 ## 注意事项
