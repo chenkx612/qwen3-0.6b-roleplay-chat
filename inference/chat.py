@@ -177,7 +177,7 @@ def main():
     parser.add_argument(
         "--model", "-m",
         type=str,
-        default="Qwen/Qwen3-0.6B",
+        default="Qwen/Qwen3.5-9B",
         help="模型路径或HuggingFace模型ID"
     )
     parser.add_argument(

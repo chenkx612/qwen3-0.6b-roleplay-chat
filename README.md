@@ -1,13 +1,13 @@
 # 微信聊天角色扮演
 
-使用 Qwen3-0.6B 模型 + LoRA 微调，基于微信聊天记录让模型学会模仿对话中对方的说话风格。
+使用 Qwen3.5-9B 模型 + LoRA 微调，基于微信聊天记录让模型学会模仿对话中对方的说话风格。
 
 ## 技术栈
 
 | 组件 | 选型 | 说明 |
 |------|------|------|
-| 基座模型 | [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) | 阿里通义千问，6亿参数，中文能力强 |
-| 微调方法 | LoRA | 低秩适配，仅训练1.3%参数 |
+| 基座模型 | [Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.5-9B) | 阿里通义千问，90亿参数，中文能力强 |
+| 微调方法 | LoRA | 低秩适配，仅训练少量参数 |
 | 量化方案 | QLoRA (4-bit NF4) | 显存占用低，免费Colab可跑 |
 | 训练框架 | TRL + PEFT | HuggingFace官方SFT训练库 |
 | 推理后端 | Transformers / llama.cpp | 支持CPU推理 |
@@ -89,9 +89,9 @@ LoraConfig(
 )
 ```
 
-- **可训练参数**: 10,092,544 (约10M)
-- **总参数量**: 761,724,928 (约762M)
-- **可训练比例**: 1.325%
+- **可训练参数**: 约80M（9B模型LoRA参数更多）
+- **总参数量**: 约9.2B
+- **可训练比例**: 约0.9%
 
 **4-bit 量化配置 (QLoRA)**
 
@@ -109,10 +109,10 @@ BitsAndBytesConfig(
 | 参数 | 值 | 说明 |
 |------|-----|------|
 | num_train_epochs | 2 | 训练轮数 |
-| per_device_train_batch_size | 4 | 单卡批次大小 |
-| gradient_accumulation_steps | 4 | 梯度累积步数 |
-| effective_batch_size | 16 | 等效批次大小 (4×4) |
-| learning_rate | 2e-4 | 学习率 |
+| per_device_train_batch_size | 1 | 单卡批次大小（9B模型显存占用大） |
+| gradient_accumulation_steps | 16 | 梯度累积步数 |
+| effective_batch_size | 16 | 等效批次大小 (1×16) |
+| learning_rate | 1e-4 | 学习率（大模型用更小学习率） |
 | lr_scheduler_type | cosine | 余弦学习率调度 |
 | warmup_ratio | 0.1 | 预热比例 |
 | optimizer | paged_adamw_8bit | 8-bit分页优化器 |
@@ -120,7 +120,7 @@ BitsAndBytesConfig(
 
 **数据格式化**
 
-训练数据使用 Qwen3 的 ChatML 模板格式化：
+训练数据使用 Qwen3.5 的 ChatML 模板格式化：
 
 ```
 <|im_start|>user
@@ -131,11 +131,11 @@ BitsAndBytesConfig(
 
 **输出文件**
 
-- `lora_adapter/` - LoRA适配器权重（约40MB）
+- `lora_adapter/` - LoRA适配器权重（约150MB）
   - `adapter_model.safetensors` - LoRA权重
   - `adapter_config.json` - LoRA配置
   - `tokenizer.json` - 分词器
-- `merged_model/` - 合并后的完整模型（约1.5GB）
+- `merged_model/` - 合并后的完整模型（约18GB，需高内存环境）
 
 ### 3. 本地推理
 
@@ -149,13 +149,13 @@ pip install -r requirements.txt
 
 ```bash
 # 使用LoRA适配器（推荐）
-python inference/chat.py --model Qwen/Qwen3-0.6B --lora ./lora_adapter
+python inference/chat.py --model Qwen/Qwen3.5-9B --lora ./lora_adapter
 
 # 使用合并后的完整模型
 python inference/chat.py --model ./merged_model
 
 # 添加系统提示
-python inference/chat.py --model Qwen/Qwen3-0.6B --lora ./lora_adapter \
+python inference/chat.py --model Qwen/Qwen3.5-9B --lora ./lora_adapter \
     --system-prompt "你是一个温柔体贴的朋友"
 ```
 
@@ -219,9 +219,9 @@ python inference/chat.py --backend llama.cpp --gguf ./model.gguf
 
 ### 学习率调整
 
-- **默认**: 2e-4
-- **过拟合（loss震荡）**: 降至 1e-4 或 5e-5
-- **欠拟合（loss下降慢）**: 升至 3e-4 或 5e-4
+- **默认**: 1e-4
+- **过拟合（loss震荡）**: 降至 5e-5 或 2e-5
+- **欠拟合（loss下降慢）**: 升至 2e-4 或 3e-4
 
 ### 常见问题诊断
 
@@ -258,6 +258,7 @@ A:
 
 - [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
 - [QLoRA: Efficient Finetuning of Quantized LLMs](https://arxiv.org/abs/2305.14314)
+- [Qwen3.5 技术报告](https://qwenlm.github.io/blog/qwen3.5/)
 - [Qwen3 技术报告](https://qwenlm.github.io/blog/qwen3/)
 - [HuggingFace PEFT 文档](https://huggingface.co/docs/peft)
 - [TRL SFTTrainer 文档](https://huggingface.co/docs/trl/sft_trainer)
