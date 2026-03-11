@@ -1,6 +1,7 @@
 .claude
 CLAUDE.md
-data/
+data/*
+!data/*.example.json
 .DS_Store
 temp/
 .env
