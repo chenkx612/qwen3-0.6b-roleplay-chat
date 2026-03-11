@@ -1,5 +1,6 @@
 .claude
 CLAUDE.md
-train_data.json
+data/
 .DS_Store
 temp/
+.env

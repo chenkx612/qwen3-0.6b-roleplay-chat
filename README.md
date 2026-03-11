@@ -19,6 +19,7 @@ roleplay/
 ├── data/
 │   └── train_data.json        # 训练数据（ShareGPT格式，手写）
 ├── scripts/
+│   ├── augment_data.py        # 数据增强脚本（用LLM生成更多训练数据）
 │   └── convert_to_gguf.py     # 模型转换脚本（可选）
 ├── train/
 │   └── finetune.ipynb         # Colab微调notebook
@@ -176,6 +177,45 @@ python inference/chat.py --model Qwen/Qwen3.5-9B --lora ./lora_adapter \
 
 ## 高级用法
 
+### 数据增强
+
+训练数据太少时，可以用 LLM API 自动分析现有对话风格并批量生成新对话。兼容所有 OpenAI 格式 API（DeepSeek、OpenAI 等）。
+
+**配置 API（一次性）：**
+
+```bash
+cp .env.example .env
+# 编辑 .env 填入实际值：
+#   OPENAI_BASE_URL=https://api.deepseek.com/v1
+#   OPENAI_API_KEY=sk-xxx
+#   AUGMENT_MODEL=deepseek-chat
+```
+
+**运行：**
+
+```bash
+# 安装依赖
+pip install openai
+
+# 默认生成 20 组对话，合并到原始数据
+python scripts/augment_data.py
+
+# 自定义参数
+python scripts/augment_data.py -n 50 -B 10 -t 0.8 --save-analysis
+
+# 不合并原始数据，单独输出
+python scripts/augment_data.py -n 30 -o data/generated.json --no-merge
+```
+
+脚本工作流程：
+1. 加载并校验现有训练数据
+2. 统计分析 assistant 消息的风格特征（口头禅、用字习惯、连发消息模式、句尾语气等）
+3. 将分析结果转化为风格指令 prompt，从话题池中采样生成方向
+4. 分批调用 API 生成新对话，自动重试和 JSON 容错解析
+5. 校验格式、自动修复、合并输出
+
+`--save-analysis` 会额外保存 `style_analysis.json`（风格分析报告）和 `generation_prompt.txt`（实际发给 LLM 的 prompt），方便检查和调试。
+
 ### 使用 llama.cpp 加速推理
 
 1. 安装 llama-cpp-python：
@@ -195,7 +235,7 @@ python inference/chat.py --backend llama.cpp --gguf ./model.gguf
 ## 注意事项
 
 1. **数据隐私**: 聊天记录可能包含敏感信息，请妥善保管
-2. **训练数据量**: 建议至少 100 条以上的对话记录，效果更好
+2. **训练数据量**: 建议至少 100 条以上的对话记录，数据不足时可用 `scripts/augment_data.py` 增强
 3. **显存需求**: Colab 免费版 T4 GPU（16GB）足够训练
 4. **推理速度**: CPU 推理较慢，建议使用 llama.cpp 或量化模型
 
