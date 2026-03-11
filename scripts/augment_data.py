@@ -299,10 +299,16 @@ def analyze_style(data: list) -> dict:
 # 阶段3：构建 Prompt
 # ============================================================
 
-def build_system_prompt(analysis: dict, sample_conversations: list) -> str:
+def build_system_prompt(analysis: dict, sample_conversations: list, persona: str = None) -> str:
     """将风格分析转化为生成指令"""
     parts = ["你是一个对话数据生成器。你需要模仿以下说话风格，生成微信日常聊天对话。"]
     parts.append("")
+
+    if persona:
+        parts.append("## 角色人设")
+        parts.append("")
+        parts.append(f"你要模仿的对方的人设：{persona}")
+        parts.append("")
 
     # 风格描述
     parts.append("## 说话风格要求")
@@ -609,6 +615,12 @@ def main():
         help="保存风格分析报告和生成 prompt"
     )
     parser.add_argument(
+        "--config", "-c",
+        type=str,
+        default=None,
+        help="配置文件路径 (默认自动查找 data/config.json)"
+    )
+    parser.add_argument(
         "--no-merge",
         action="store_true",
         help="不合并原始数据，只输出生成的数据"
@@ -658,6 +670,23 @@ def main():
         input_p = Path(args.input)
         output_path = str(input_p.parent / f"{input_p.stem}_augmented{input_p.suffix}")
 
+    # 加载配置文件（人设信息）
+    persona = None
+    config_candidates = [args.config] if args.config else [
+        "data/config.json",
+        str(Path(__file__).resolve().parent.parent / "data" / "config.json"),
+    ]
+    for cp in config_candidates:
+        if cp and Path(cp).is_file():
+            with open(cp, "r", encoding="utf-8") as f:
+                chat_config = json.load(f)
+            persona = chat_config.get("system_prompt", "")
+            if persona:
+                print(f"已加载人设配置: {cp}")
+            break
+    if not persona:
+        print("未找到 config.json 或 system_prompt 为空，将仅使用风格分析结果生成")
+
     # ---- 阶段1：加载 ----
     print("=" * 50)
     print("阶段 1/5：加载与校验输入数据")
@@ -675,7 +704,7 @@ def main():
     print("阶段 3/5：构建生成 Prompt")
     print("=" * 50)
     sample_conversations = random.sample(data, min(3, len(data)))
-    system_prompt = build_system_prompt(analysis, sample_conversations)
+    system_prompt = build_system_prompt(analysis, sample_conversations, persona=persona)
     print(f"  System prompt 长度: {len(system_prompt)} 字符")
 
     # 保存分析报告
